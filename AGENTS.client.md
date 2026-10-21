@@ -1,27 +1,52 @@
-## 基本原则
+## Core Principles
 
-- 保持简单、简洁、清晰、明确
-- 避免重复代码, 对重复的代码进行抽象设计, 使其可被共享
-- 不要简单的堆砌代码, 应做抽象设计, 保持代码的可维护性和可扩展性
-- 完成目标时不要仅做表面上的工作, 关联的逻辑、测试、文档也应一并修改，移除时询问关联的内容是否也应一并移除
+- Keep things simple, concise, clear, and explicit
+- Avoid code duplication by abstracting repeated logic into reusable code
+- Avoid simply piling up code; use proper abstractions to maintain code maintainability and extensibility
+- When completing a task, do not make only superficial changes; update related logic, tests, and documentation as well. When removing something, ask whether its related content should also be removed
 
-## 风格规范
+## Code Style
 
-- 符号命名应结合上下文在保证语义清晰的基础上尽可能的简洁
-- 代码块之间应至少空一行
-- 注释应与上方代码之间空一行
-- 存储 key 的命名格式为 a.b.c
+- Keep symbol names as concise as possible while preserving semantic clarity within their context
+- Leave at least one blank line between code blocks
+- Leave at least one blank line between comments and the code above them
+- Use the `a.b.c` naming format for storage keys
 
-## 测试
+## Testing
 
-- 补充必要的单元测试、集成测试
+- Add necessary unit tests, integration tests, browser automation tests, and performance tests
 
-## 注释
+## Comments
 
-- 对不容易理解的地方加详细的注释
-- 不要删除原有代码注释
+- Add detailed comments to code that is difficult to understand
+- Do not add comments for self-explanatory code
 
-## 历史兼容
+## Assets
 
-- 这是一个仍在开发中的项目, 你不需要考虑历史数据/逻辑的兼容性
-- 不需要为移除的内容添加测试
+- Store all assets in the `tmp` directory at the project root
+- Export icon assets as SVG, use the `@artibox/components/Icon` component, and name the `name` property using the `tmp_xxx` format
+- Export decorative images as 2x PNG, convert them to WebP using the system's `ffmpeg`, and name them using a UUID in the `uuid.webp` format
+- Use placeholders wherever assets are referenced in code, e.g., `<img src="uuid.webp" />`
+
+## APIs
+
+- When I explicitly indicate that an API is not yet implemented, mock the corresponding API using Next.js API routes with the `/api/mock` path prefix
+
+## Component Usage
+
+- Reuse components from the existing component library whenever possible
+
+## Performance
+
+- Performance is a high priority in this project; always use the most efficient implementation while meeting functional requirements
+- Always use dynamic imports for pages or components that do not require SEO
+- Always create modal components dynamically rather than injecting them statically
+
+## Desktop Application
+
+- `apps/desktop` is reserved for future expansion and should not be implemented at this stage; however, code logic sharing between Web and Desktop must be considered from the beginning
+
+## Backward Compatibility
+
+- This project is still under development; backward compatibility with historical data or logic is not required
+- Do not add tests for removed functionality
