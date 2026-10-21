@@ -23,10 +23,10 @@
 
 ## Assets
 
-- Store all assets in the `tmp` directory at the project root
-- Export icon assets as SVG, use the `@artibox/components/Icon` component, and name the `name` property using the `tmp_xxx` format
-- Export decorative images as 2x PNG, convert them to WebP using the system's `ffmpeg`, and name them using a UUID in the `uuid.webp` format
-- Use placeholders wherever assets are referenced in code, e.g., `<img src="uuid.webp" />`
+- Store all assets in the tmp directory at the project root.
+- Export icon assets as SVG and encapsulate them as components in @artibox/components/icons.
+- Export decorative images as 2x PNG, convert them to WebP using the system-installed ffmpeg, and name them uuid.webp using UUIDs.
+- Use placeholders for all asset references in the code, such as <img src="uuid.webp" />.
 
 ## APIs
 

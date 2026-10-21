@@ -24,7 +24,7 @@
 ## 素材
 
 - 所有素材存放在项目根目录的 `tmp` 目录下
-- 图标素材导出为 SVG，使用 `@artibox/components/Icon` 组件，`name` 按 `tmp_xxx` 格式命名
+- 图标素材导出为 SVG，封装 `@artibox/components/icons` 组件
 - 装饰类图片导出为 2x PNG，使用系统的 `ffmpeg` 转换为 WebP，并以 UUID 命名为 `uuid.webp`
 - 代码中所有使用素材的位置均使用占位符，例如 `<img src="uuid.webp" />`
 
