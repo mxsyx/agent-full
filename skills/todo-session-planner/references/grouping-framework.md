@@ -1,124 +1,125 @@
-# 分组框架详解
+# Task Grouping Framework: Detailed Guidelines
 
-本文件是 `todo-session-planner` 的参考细则，供需要深入判断时加载。
+This document provides detailed reference guidelines for `todo-session-planner`. Load it when deeper analysis or judgment is required.
 
-## 一、四类任务的识别与处理
+## 1. Identifying and Handling the Four Task Categories
 
-### 1. 验收 / 实测型
+### 1.1. Acceptance / Real-World Validation Tasks
 
-**识别信号**：出现「实测、验收、端到端、真实账号、真实设备、干净设备、断电、拔盘、演练、接入真实 API」等字样，或完成定义写的是「验证 X 行为」而非「实现 X」。
+**Identification signals**: Terms such as "real-world testing", "acceptance testing", "end-to-end", "real account", "physical device", "clean device", "power outage", "disk disconnection", "recovery drill", or "integration with a real API". Another indicator is when the definition of done specifies "verify behavior X" rather than "implement X".
 
-**本质**：编码量通常很小，阻塞点是**外部资源**（凭据、账号、硬件、人工操作）。产出物是验证报告或能力矩阵。
+**Nature**: These tasks typically require little coding. The main blockers are **external resources** (credentials, accounts, hardware, or manual operations). The expected deliverables are validation reports or capability matrices.
 
-**处理方式**：
+**Handling guidelines**:
 
-- 按「外部资源批次」聚合——共用同一批凭据 / 同一台设备 / 同一次人工操作的实测项归为一组。
-- 组内按依赖串行排序（通常存在 A 验证授权、B 验证授权后的读写这条链）。
-- 显式标注哪些步骤必须人工完成（控制台注册、浏览器授权、物理插拔），AI 只负责准备脚本、执行校验、归档结果。
-- 组内可先完成「脚本与校验器实现」，把「真实执行」留到资源就绪后。
+- Group tasks by **shared external resources**. Validation tasks requiring the same credentials, device, or manual operation should belong to the same group.
+- Order tasks within each group according to their dependencies, usually sequentially (e.g., A validates authorization, then B validates read/write operations using that authorization).
+- Explicitly identify steps requiring human intervention (console registration, browser-based authorization, physical device operations). The AI should focus on preparing scripts, running checks, and recording results.
+- Separate "script and validator implementation" from "real-world execution" when appropriate. Implementation can proceed before the required external resources become available.
 
-### 2. 实现型
+### 1.2. Implementation Tasks
 
-**识别信号**：新增独立模块 / 独立目录（如新增一个 Provider、一个适配器），或对某个自包含子系统的大幅补全。
+**Identification signals**: Adding an independent module or directory (such as a new Provider or adapter), or substantially completing a self-contained subsystem.
 
-**本质**：体量大、上下文自包含。
+**Nature**: These tasks are relatively large and have self-contained contexts.
 
-**处理方式**：
+**Handling guidelines**:
 
-- 每个实现型任务独占一组，不要与其他实现型任务合并。
-- 多个实现型任务若互不共享文件，可并行（独立 worktree / 子代理）。
-- 若完成定义里含「实测」部分，把实测拆到验收组或在该组内明确分段。
+- Assign each implementation task to its own group. Do not combine multiple implementation tasks into a single group.
+- Independent implementation tasks that do not share files may run in parallel using separate worktrees or subagents.
+- If the definition of done includes real-world validation, move that portion into an acceptance group or explicitly separate the implementation and validation phases within the group.
 
-### 3. 内核 / 重构型
+### 1.3. Core / Refactoring Tasks
 
-**识别信号**：改动共享基础模块（core / common / 协议层），或涉及性能优化、数据格式变更、回归测试补齐。
+**Identification signals**: Changes to shared foundational modules (core, common, or protocol layers), performance optimizations, data format changes, or additional regression tests.
 
-**本质**：影响面广，牵动多处测试。
+**Nature**: These tasks have a broad impact and often affect multiple test suites.
 
-**处理方式**：
+**Handling guidelines**:
 
-- 按「代码热区」聚合——都改同一片上传 / 索引 / 清单逻辑的归为一组。
-- 合并能避免对同一片代码做两次重复探索。
-- 若涉及数据格式或版本契约变更，单独标出并检查是否存在未合并的相关待办。
+- Group tasks by **shared code hotspots**. Tasks modifying the same upload, indexing, or manifest logic should belong to the same group.
+- Combining related tasks avoids repeatedly exploring and understanding the same code paths.
+- If a task changes data formats or version contracts, highlight the change explicitly and check for related pending TODOs that have not yet been included.
 
-### 4. UI / 配置型
+### 1.4. UI / Configuration Tasks
 
-**识别信号**：设置页、高级设置、提示文案、状态呈现、连接管理界面。
+**Identification signals**: Settings pages, advanced settings, informational messages, status displays, or connection management interfaces.
 
-**本质**：改动集中在渲染层与配置面，通常互不冲突。
+**Nature**: Changes are concentrated in the presentation and configuration layers and are often independent.
 
-**处理方式**：
+**Handling guidelines**:
 
-- 按界面或配置面聚合（同属备份中心的合并）。
-- 若某条同时需要内核改动（如新的状态来源），把它与提供该状态的内核组对齐，或标为「依赖 X 组」。
+- Group tasks by shared UI areas or configuration surfaces (e.g., tasks related to the Backup Center should be grouped together).
+- If a task also requires core changes (such as introducing a new status source), align it with the core group providing that functionality or mark it as "Depends on Group X".
 
-## 二、体量启发式
+## 2. Task Size Heuristics
 
-用于判断一组是否超出单次会话的合理上下文：
+Use these heuristics to determine whether a group exceeds the reasonable context budget of a single session:
 
-| 信号 | 判断 |
-|---|---|
-| 组内需新增 / 大幅重写单个 >15KB 的模块 | 该任务独占一组 |
-| 组内涉及 2 个以上互不共享文件的独立子系统 | 拆开 |
-| 组内 ≥5 条待办且类型混杂（跨 3 类以上） | 大概率分错了，重新分类 |
-| 组内任务共用同一批文件与同一批测试 | 合并是合理的 |
-| 组内仅 1 条待办且该待办很小 | 可与其他同热区小任务合并 |
+| Signal                                                                              | Recommendation                                                             |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| A task requires adding or substantially rewriting a single module larger than 15 KB | Assign that task to its own group                                          |
+| A group spans more than two independent subsystems that do not share files          | Split the group                                                            |
+| A group contains 5 or more TODOs spanning at least 3 task categories                | The grouping is likely incorrect; reassess the classification              |
+| Tasks within a group share the same files and test suites                           | Combining them is reasonable                                               |
+| A group contains only one small TODO                                                | Consider merging it with other small tasks affecting the same code hotspot |
 
-经验阈值：**一个组以 2–4 条待办、聚焦 1–2 个模块为宜**。
+Rule of thumb: **Aim for 2–4 TODOs per group, focused on 1–2 modules.**
 
-## 三、依赖处理检查单
+## 3. Dependency Handling Checklist
 
-对每个组依次确认：
+For each group, verify the following:
 
-1. 是否存在共同的**前置组**（闸门组）？
-2. 组内步骤之间是**严格串行**还是可部分并行？
-3. 是否与另一组**写同一文件**？若是，二者不可同时执行，需串行或隔离 worktree。
-4. 是否存在「实现可先行、实测需等待外部资源」的分段？若存在，明确分段点。
-5. 是否存在**共享的状态文件**（如 TODO.md、CHANGELOG）？若是，约定收尾回写时机，避免并行覆盖。
+1. Does the group have a shared **prerequisite group** (gate group)?
+2. Must tasks within the group execute **strictly sequentially**, or can some run in parallel?
+3. Does the group **modify the same files** as another group? If so, they must not run concurrently unless properly isolated using separate worktrees.
+4. Can implementation proceed while real-world validation must wait for external resources? If so, explicitly define the phase boundary.
+5. Are there **shared state files** (such as `TODO.md` or `CHANGELOG`)? If so, define when updates should be written back to avoid concurrent overwrites.
 
-## 四、输出检查单
+## 4. Output Checklist
 
-分组方案交付前，确认已包含：
+Before delivering the grouping plan, verify that it includes:
 
-- [ ] 一句话结论
-- [ ] 任务类型判断表
-- [ ] 分组表（组名 / 任务 / 前置 / 可并行）
-- [ ] 每条「不建议合并 / 必须串行」的理由
-- [ ] 闸门组标识
-- [ ] 需人工操作、AI 无法代劳的部分
-- [ ] 启动顺序与并行策略
-- [ ] 跨会话交接方式（回写清单勾选状态）
+- [ ] A one-sentence conclusion
+- [ ] A task classification table
+- [ ] A grouping table (group name / tasks / prerequisites / parallel execution)
+- [ ] Reasons for every "Do not merge" or "Must execute sequentially" decision
+- [ ] Explicit identification of gate groups
+- [ ] Steps requiring human intervention that the AI cannot perform
+- [ ] Recommended execution order and parallelization strategy
+- [ ] Cross-session handoff procedures (including updating checklist completion states)
 
-## 五、完整示例
+## 5. Complete Example
 
-**输入**：某云盘备份项目的 18 条待办（P0–P3），含 OAuth 注册、Google Drive 端到端验收、第二设备恢复、Dropbox Provider、OneDrive Provider、上传会话续传、分页索引、附件校验模式、恢复空间预估、打包分发、自定义 Client ID、账号 UI、网络探测、容量演练、租户策略、隐藏模式等。
+**Input**: A cloud backup project with 18 TODOs (P0–P3), covering OAuth registration, Google Drive end-to-end acceptance testing, recovery on a second device, Dropbox Provider, OneDrive Provider, resumable upload sessions, paginated indexing, attachment verification modes, recovery storage estimation, packaging and distribution, custom Client ID, account UI, network probing, capacity testing, tenant policies, hidden mode, and related work.
 
-**判断依据**：
+**Reasoning**:
 
-- 清单前言说明「核心框架与 Google Drive 闭环已实现，Dropbox/OneDrive 仅 Beta 占位」，据此可判定哪些是实测型、哪些是全新实现型。
-- 单文件规模参考：现有 Google Drive Provider 单个源文件已达 23KB，说明每个 Provider 必须独占一组。
-- 四条链：真实授权闸门（74→75→76）、Provider 实现（82、83）、Google 内核深化（84、85）、UI/配置（78、81、86、87）。
+- The TODO list introduction states that "the core framework and Google Drive end-to-end workflow have already been implemented, while Dropbox/OneDrive are only Beta placeholders". This helps distinguish real-world validation tasks from new implementation tasks.
+- File size reference: The existing Google Drive Provider source file is already 23 KB, indicating that each Provider should have its own group.
+- Four workstreams: Real authorization gate (74 → 75 → 76), Provider implementation (82, 83), Google core enhancements (84, 85), and UI/configuration (78, 81, 86, 87).
 
-**推荐分组**：
+**Recommended grouping**:
 
-| 组 | 任务 | 前置 | 可并行 |
-|---|---|---|---|
-| A 真实授权闸门 | 74 → 75 → 76，并入 89 | 用户完成 OAuth 注册 | 与 B–F 并行 |
-| B Dropbox Provider | 82 | 实测部分依赖 A | 与 C 并行 |
-| C OneDrive Provider | 83 | 实测部分依赖 A | 与 B 并行 |
-| D Google 内核深化 | 84 + 85 | — | |
-| E 校验等级与预算语义 | 78 + 79 | — | |
-| F 配置入口与打包分发 | 81 + 80 | — | |
-| G 备份中心状态与账号 UI | 86 + 87 | D 的一部分 | |
-| H 设计先行 | 90 | 需先出生命周期协议 | |
+| Group                                       | Tasks                 | Prerequisites                             | Parallel Execution    |
+| ------------------------------------------- | --------------------- | ----------------------------------------- | --------------------- |
+| A: Real Authorization Gate                  | 74 → 75 → 76, plus 89 | User completes OAuth registration         | Can run alongside B–F |
+| B: Dropbox Provider                         | 82                    | Validation phase depends on A             | Can run alongside C   |
+| C: OneDrive Provider                        | 83                    | Validation phase depends on A             | Can run alongside B   |
+| D: Google Core Enhancements                 | 84 + 85               | None                                      | —                     |
+| E: Verification Levels and Budget Semantics | 78 + 79               | None                                      | —                     |
+| F: Configuration Entry Points and Packaging | 81 + 80               | None                                      | —                     |
+| G: Backup Center Status and Account UI      | 86 + 87               | Part of D                                 | —                     |
+| H: Design First                             | 90                    | Lifecycle protocol must be designed first | —                     |
 
-**关键说明**：
+**Key explanations**:
 
-- A 组必须串行且一次做完：同一条依赖链、同一批凭据、同一台设备，且是唯一闸门组。
-- B / C 的实现部分可立即开工，不要因等凭据而空转；实测部分待 A 完成后补做。
-- D 组合并的理由：都改同一片上传会话与清单读取路径，代码与回归测试重叠。
-- 89 并入 A：同为真实租户验证，单独成组会重复搭建环境。
-- 90 单列：它是设计任务，明确要求「先补协议再评估」，不适合塞进实现组。
+- Group A must execute sequentially and should be completed as one coordinated effort. Its tasks form a single dependency chain, share the same credentials and device, and collectively represent the only gate group.
+- Implementation work for B and C can begin immediately. Do not leave these tasks idle while waiting for credentials. Complete their real-world validation phases after A is finished.
+- Tasks in D are grouped because they modify overlapping upload-session and manifest-reading code paths, sharing both implementation context and regression tests.
+- Task 89 belongs in A because it also requires real-tenant validation. Separating it would result in redundant environment setup.
+- Task 90 remains independent because it is a design task explicitly requiring "complete the protocol before evaluation". It should not be mixed into an implementation group.
 
-**闸门组**：A。
-**需人工完成**：OAuth 应用注册、真实账号授权、干净设备上的恢复验收、组织租户策略验证。
+**Gate group**: A.
+
+**Human intervention required**: OAuth application registration, real-account authorization, recovery acceptance testing on a clean device, and organization-level tenant policy validation.

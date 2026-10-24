@@ -1,106 +1,112 @@
 ---
 name: todo-session-planner
-description: "把待办清单（TODO/ROADMAP/backlog）归类并切分成合理的会话或任务分组，产出可直接执行的分组、依赖与并行方案。当用户问「这些 TODO 应该一个会话做完还是拆分」「如何合并/编排/组织 TODO」「一个任务还是多个任务」「哪些可以并行」「要不要分多个会话」时使用。Triggers on: group TODOs, split TODOs into sessions, task batching, work breakdown, session planning, parallel planning, merge TODO items, 合并 TODO, 任务分组, 会话切分, 任务编排, 并行规划."
+description: "Categorize and split TODO lists (TODO/ROADMAP/backlog) into appropriately scoped sessions or task groups, producing actionable groupings, dependencies, and parallel execution plans. Use when the user asks whether TODOs should be completed in one session or split across multiple sessions, how to merge or organize TODOs, whether work should be treated as one task or multiple tasks, which tasks can run in parallel, or how to structure execution sessions. Triggers on: group TODOs, split TODOs into sessions, task batching, work breakdown, session planning, parallel planning, merge TODO items, 合并 TODO, 任务分组, 会话切分, 任务编排, 并行规划."
 ---
 
-# TODO 会话规划（Task Grouping & Session Planner）
+# TODO Session Planning (Task Grouping & Session Planner)
 
-## 概述
+## Overview
 
-把一份待办清单切分成若干「任务组」，每组对应一个会话或一次任务执行。目标是让每个组内部上下文自洽、代码热区不重叠、外部资源可复用，组与组之间依赖清晰、可安全并行。
+Split a TODO list into task groups, each corresponding to one session or a single execution unit.
 
-## 何时使用
+The goal is to ensure that each group has self-contained context, minimizes overlapping code modification areas, reuses external resources where possible, and maintains clear dependencies and safe parallel execution boundaries between groups.
 
-用户提出以下任一诉求时使用本 skill：
+## When to Use
 
-- 询问一批 TODO 该一次做完还是拆开做
-- 询问如何合并、归类、编排待办项
-- 询问哪些任务可以并行、会话该如何划分
-- 面对长清单需要一份可执行的执行计划
+Use this skill when the user:
 
-## 核心原则
+- Asks whether a set of TODOs should be completed in one session or split across multiple sessions.
+- Asks how to merge, categorize, sequence, or organize TODO items.
+- Asks which tasks can run in parallel or how sessions should be divided.
+- Needs an actionable execution plan for a large TODO list.
 
-切分维度只有三个，按优先级从高到低判断：
+## Core Principles
 
-1. **共享代码热区**：改动同一批文件、共用同一批测试的任务，放同一组；否则拆开。这是避免上下文互相污染的第一准则。
-2. **共享外部资源**：阻塞在同一批外部凭据、账号、设备、人工操作上的任务，放同一组批量处理，避免重复搭建环境、重复等待。
-3. **强依赖链**：A 是 B 的前置条件时，把 A→B 串成同组的顺序步骤，而不是拆成两个会话后靠交接文档传递状态。
+Use only three grouping dimensions, evaluated in descending order of priority:
 
-**判定边界**：当且仅当两个任务同时满足「同一片文件 + 同一批测试」或「同一批外部资源」时才合并。
+1. **Shared code hotspots**: Group tasks that modify the same set of files and share the same tests. Otherwise, keep them separate. This is the primary rule for preventing context interference.
+2. **Shared external resources**: Group tasks blocked by the same credentials, accounts, devices, or manual operations. Process them as a batch to avoid repeated environment setup and waiting.
+3. **Strong dependency chains**: When A is a prerequisite for B, organize A → B as sequential steps within the same group rather than splitting them into separate sessions that require handoff documents to transfer state.
 
-## 工作流
+**Grouping boundary**: Merge two tasks if and only if they share both the same file area and the same test suite, or depend on the same batch of external resources.
 
-### 第 1 步：摄取与解析
+## Workflow
 
-读取完整清单（而非用户粘贴的片段），连同以下上下文一起解析：
+### Step 1: Ingest and Parse
 
-- 每条待办的优先级标记（P0/P1/P2…）
-- 每条待办的完成定义（做到什么算完成）
-- 清单前言里对「已实现 / 未实现」的说明——它往往决定了任务性质
-- 相关目录结构、模块规模与现有测试位置
+Read the complete TODO list, not just excerpts pasted by the user, and analyze it together with the following context:
 
-**关键动作**：识别每条待办里是否含「实测 / 验收 / 端到端 / 真实环境」等字样。这类任务的完成条件通常是**外部资源**，而不是代码。
+- Priority labels for each item (P0/P1/P2, etc.).
+- Definition of done for each item.
+- Statements in the list's introduction about what has already been implemented versus what remains incomplete, as these often determine the nature of the tasks.
+- Relevant directory structure, module sizes, and existing test locations.
 
-### 第 2 步：分类
+**Critical action**: Identify TODO items containing terms such as "real-world testing," "acceptance testing," "end-to-end," or "real environment." Their completion criteria usually depend on **external resources**, rather than code changes.
 
-把每条待办归入四类之一（详见 `references/grouping-framework.md`）：
+### Step 2: Classify
 
-| 类型 | 特征 | 分组含义 |
-|---|---|---|
-| 验收 / 实测型 | 编码量小，阻塞于真实凭据、真实账号、干净设备、人工操作 | 按外部资源批次聚合 |
-| 实现型 | 独立模块、独立目录，体量大 | 每个独占一组，可并行 |
-| 内核 / 重构型 | 改动共享基础模块，牵动回归测试 | 按代码热区聚合 |
-| UI / 配置型 | 设置页、提示文案、状态呈现 | 按界面或配置面聚合 |
+Assign each TODO item to one of four categories (see `references/grouping-framework.md`):
 
-### 第 3 步：分组
+| Category                        | Characteristics                                                                            | Grouping Strategy                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| Acceptance / Real-world Testing | Minimal coding; blocked by real credentials, accounts, clean devices, or manual operations | Group by shared external resource batches                 |
+| Implementation                  | Independent modules or directories with substantial scope                                  | Assign each to a separate group; allow parallel execution |
+| Core / Refactoring              | Modifies shared foundational modules and affects regression tests                          | Group by shared code hotspots                             |
+| UI / Configuration              | Settings pages, user-facing messages, and status presentation                              | Group by UI surface or configuration area                 |
 
-依次应用核心原则三条准则，得到初始分组。然后校验每个组：
+### Step 3: Group Tasks
 
-- 组内是否存在**互斥的写操作**（同一文件的不同区域）？若必须串行，则保留为一组并标注顺序。
-- 组内是否有任务其实**不共享任何资源**？若有，说明分错了，拆开。
-- 单组工作量是否超出一次会话的合理上下文？参考 `references/grouping-framework.md` 的体量启发式。
+Apply the three core principles in order to produce an initial grouping.
 
-### 第 4 步：排序与并行
+Then validate each group:
 
-1. 画出组间**依赖图**：哪些组是其他组的前置（闸门组）。
-2. 标出**可并行组**：无共享文件、无依赖关系的组。
-3. 给出**执行建议**：先启动闸门组，同时并行无依赖组；对有文件竞争的并行组，建议使用独立 worktree 或子代理。
-4. 把「实现」与「实测」在同一组内显式分离——实现不需要外部资源即可开工，不要因等待凭据而空转。
+- Does the group contain **conflicting write operations** targeting different regions of the same file? If these operations must run sequentially, keep them in one group and explicitly specify their execution order.
+- Are there tasks within the group that **share no resources at all**? If so, the grouping is incorrect; split them apart.
+- Does the group's workload exceed the reasonable context capacity of a single session? Refer to the workload heuristics in `references/grouping-framework.md`.
 
-### 第 5 步：输出
+### Step 4: Sequence and Parallelize
 
-先给一句结论，再给依据与分组表，最后给执行顺序。固定使用以下模板：
+1. Build an **inter-group dependency graph** identifying which groups are prerequisites for others (gate groups).
+2. Identify **parallelizable groups** that share no files and have no dependency relationships.
+3. Provide **execution recommendations**: Start gate groups first while running independent groups in parallel. For parallel groups with potential file conflicts, recommend separate Git worktrees or subagents.
+4. Explicitly separate **implementation** from **real-world testing** within the same group. Implementation can begin without external resources and should not remain idle while waiting for credentials or access.
 
+### Step 5: Produce the Output
+
+Start with a one-sentence conclusion, followed by the rationale, grouping table, and recommended execution order.
+
+Always use the following template:
+
+```text
+**Conclusion**: (Do not put everything into one session / do not create one session per TODO). Divide the work into N groups based on <dimension>.
+
+## Rationale
+(Task classification table + 2–3 reasons for the grouping decisions)
+
+## Recommended Groups
+| Group | Tasks | Prerequisites | Parallelizable |
+
+## Key Considerations
+(Explain each case where merging is not recommended or sequential execution is required)
+
+## Execution Recommendations
+(Startup order, parallel execution strategy, and handoff approach)
 ```
-**结论**：（不要一个会话全做 / 也不要一条待办一个会话），按 <维度> 切成 N 组最合适。
 
-## 判断依据
-（任务类型表 + 2–3 条切分理由）
+**The output must conclude with all three of the following:**
 
-## 推荐分组
-| 组 | 任务 | 前置 | 可并行 |
+- Explicitly identify the **gate group(s)** that unlock the largest number of downstream tasks.
+- Explicitly identify any **manual operations that AI cannot perform independently**, such as console registration, account authorization, or physical-device acceptance testing.
+- Require every session to **update the TODO list's completion checkboxes** before ending, using the updated list as the source of truth for cross-session handoffs.
 
-## 关键说明
-（每条「不建议合并 / 必须串行」的理由）
+## Common Pitfalls
 
-## 执行建议
-（启动顺序、并行策略、交接方式）
-```
-
-**必须包含的三项收尾内容**：
-
-- 明确指出**闸门组**（解锁最多后续任务的组）
-- 明确指出**需人工操作、AI 无法代劳**的部分（如控制台注册、账号授权、实机验收）
-- 要求每个会话收尾时**回写清单勾选状态**，作为跨会话交接凭据
-
-## 常见误区
-
-- **按优先级切分**：P0/P1/P2 是重要度，不是耦合度，不能作为分组依据。
-- **一条待办一个会话**：忽略共享热区，导致同一片代码被反复探索。
-- **全部塞进一个会话**：体量大的独立模块会挤爆上下文；外部资源等待会让会话空转。
-- **把实测和实现混为一谈**：实现可离线推进，实测需真实环境，二者的阻塞点完全不同。
-- **只分组不排依赖**：缺少依赖图与并行建议的分组方案无法直接执行。
+- **Grouping by priority**: P0/P1/P2 indicates importance, not coupling. Priority must not be used as a grouping criterion.
+- **One TODO per session**: Ignores shared code hotspots and causes repeated exploration of the same codebase areas.
+- **Putting everything into one session**: Large independent modules can exhaust the context window, while waiting for external resources leaves the session idle.
+- **Conflating testing with implementation**: Implementation can proceed offline, whereas real-world testing requires an actual environment. Their blocking conditions are fundamentally different.
+- **Grouping without dependency planning**: A grouping plan without a dependency graph and parallel execution recommendations is not directly actionable.
 
 ## Resources
 
-- `references/grouping-framework.md` — 四类任务分类细则、体量启发式、依赖处理检查单与完整示例。
+- `references/grouping-framework.md` — Detailed classification criteria for the four task categories, workload heuristics, dependency-handling checklist, and complete examples.
