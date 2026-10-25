@@ -5,7 +5,7 @@
 - Avoid simply piling up code; use proper abstractions to maintain code maintainability and extensibility
 - When completing a task, do not make only superficial changes; update related logic, tests, and documentation as well. When removing something, ask whether its related content should also be removed
 
-## Docs
+## Documention
 
 - Store documents created by the Agent during implementation in the `docs/` directory at the project root, organized into these categories:
   - `docs/design/`: Design decisions, including architecture and feature designs.
