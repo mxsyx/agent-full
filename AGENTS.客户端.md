@@ -23,10 +23,10 @@
 
 ## 素材
 
-- 所有素材存放在项目根目录的 `tmp` 目录下
-- 图标素材导出为 SVG，封装 `@artibox/components/icons` 组件
-- 装饰类图片导出为 2x PNG，使用系统的 `ffmpeg` 转换为 WebP，并以 UUID 命名为 `uuid.webp`
-- 代码中所有使用素材的位置均使用占位符，例如 `<img src="uuid.webp" />`
+- 所有素材临时存放在项目根目录的 `tmp` 目录下
+- 图标素材导出为 SVG，封装 `@zingmake/components/icons` 组件
+- 装饰类图片导出为 2x PNG，使用系统的 `ffmpeg` 转换为 WebP，并以 UUID 命名为 `uuid.webp`，然后使用本机 ossutil 上传到 gearx bucket 下的 tmp 目录下， accessKeyID 等已提前在配置文件中配置好了。
+- 代码中所有使用素材的位置均使用占位符，例如 `<img src="上传的图片地址" />`
 
 ## 接口
 

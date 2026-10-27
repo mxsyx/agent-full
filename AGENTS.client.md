@@ -23,10 +23,10 @@
 
 ## Assets
 
-- Store all assets in the tmp directory at the project root.
-- Export icon assets as SVG and encapsulate them as components in @artibox/components/icons.
-- Export decorative images as 2x PNG, convert them to WebP using the system-installed ffmpeg, and name them uuid.webp using UUIDs.
-- Use placeholders for all asset references in the code, such as <img src="uuid.webp" />.
+- Temporarily store all assets in the `tmp` directory at the project root.
+- Export icon assets as SVG and wrap them as components in `@zingmake/components/icons`.
+- Export decorative images as 2x PNG, convert them to WebP using the system-installed `ffmpeg`, and name them using UUIDs in the format `uuid.webp`. Then, use the locally installed `ossutil` to upload them to the `tmp` directory in the `gearx` bucket. Credentials such as `accessKeyID` have already been configured in the configuration file.
+- Use placeholders for all asset references in the code, such as `<img src="uploaded-image-url" />`.
 
 ## APIs
 
